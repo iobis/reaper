@@ -16,13 +16,14 @@
       - vim
       - htop
       - mongodb-org
-    notify:
-    - start mongodb
   - name: mongod.conf
     copy: src=mongod.conf dest=/etc/mongod.conf
   - name: mongodb service
     copy: src=mongodb.service dest=/etc/systemd/system/mongodb.service
-  handlers:
-    - name: start mongodb
-      sudo: yes
-      command: systemctl start mongodb
+  - name: start mongodb
+    sudo: yes
+    command: systemctl start mongodb
+  - name: mongodb script
+    copy: src=populate.js dest=/populate.js
+  - name: populate mongodb
+    command: mongo reaper /populate.js
