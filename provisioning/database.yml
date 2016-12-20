@@ -1,4 +1,4 @@
-- name: configure reaper database server
+- name: set up reaper database server
   hosts: reapertest
   sudo: True
   vars:
