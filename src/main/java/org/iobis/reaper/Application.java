@@ -29,6 +29,9 @@ public class Application extends AsyncConfigurerSupport {
     @Value("${async.maxpoolsize}")
     private Integer maxPoolSize;
 
+    @Value("${async.queuecapacity}")
+    private Integer queueCapacity;
+
     public static void main(String[] args) throws Exception {
         SpringApplication.run(Application.class);
     }
@@ -44,6 +47,7 @@ public class Application extends AsyncConfigurerSupport {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(corePoolSize);
         executor.setMaxPoolSize(maxPoolSize);
+        executor.setQueueCapacity(queueCapacity);
         executor.initialize();
         return executor;
     }

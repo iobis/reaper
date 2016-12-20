@@ -9,7 +9,9 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 @Component
 public class FeedPoller {
@@ -27,12 +29,15 @@ public class FeedPoller {
     }
 
     /**
-     * Polls feeds in sources collection.
+     * Continuously polls all feeds in sources collection. Waits for all feeds to be processed
+     * before continuing.
      */
     @Scheduled(fixedDelayString = "${feedpoller.delay}")
     private void poll() {
 
         logger.debug("Polling feeds");
+
+        List<CompletableFuture> futures = new ArrayList<CompletableFuture>();
 
         DBCollection sources = db.getCollection("sources");
         DBCursor cursor = sources.find();
@@ -40,11 +45,17 @@ public class FeedPoller {
             DBObject object = cursor.next();
             String url = (String) object.get("url");
             try {
-                checkFeed(url);
+                CompletableFuture future = checkFeed(url);
+                futures.add(future);
             } catch (Exception e) {
                 logger.error("Failed to read feed " + url);
             }
         }
+
+        CompletableFuture all = CompletableFuture.allOf(futures.toArray(new CompletableFuture[futures.size()]));
+        all.join();
+
+        logger.debug("All feeds processed");
 
     }
 
@@ -54,11 +65,12 @@ public class FeedPoller {
      * @param url feed URL
      */
     @Async
-    private void checkFeed(String url) {
+    private CompletableFuture checkFeed(String url) {
 
         logger.debug("Checking feed " + url);
         List<IPTResource> resources = new RSSReader(url).read();
 
+        return CompletableFuture.completedFuture(url);
     }
 
 }
