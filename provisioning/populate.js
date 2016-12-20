@@ -3,12 +3,10 @@ db.createCollection("sources");
 db.getCollection("sources").insert([
 { url: "http://ipt.vliz.be/eurobis/rss.do" },
 { url: "http://ipt.vliz.be/obiscanada/rss.do" },
-{ url: "http://ipt.vliz.be/eurobis/rss.do" },
 { url: "https://nzobisipt.niwa.co.nz/rss.do" },
 { url: "http://ipt.biodiversity.aq/rss.do" },
 { url: "http://ipt.csir.co.za/ipt/rss.do" },
 { url: "http://ipt.iobis.org/caribbeanobis/rss.do" },
-{ url: "http://mike-virtualbox:8080/ipt/rss.do" },
 { url: "http://ogc-act.csiro.au/ipt/rss.do" },
 { url: "http://www.iobis.org.cn:8080/ipt/rss.do" },
 { url: "https://www1.usgs.gov/obis-usa/ipt/rss.do" },
