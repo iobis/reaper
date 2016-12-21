@@ -40,6 +40,7 @@ public class FeedPoller {
                 CompletableFuture future = checkFeed(url);
                 futures.add(future);
             } catch (Exception e) {
+                mongoService.saveError("Failed to read feed", url);
                 logger.error("Failed to read feed " + url + " - " + e.getMessage());
             }
         }
@@ -85,15 +86,22 @@ public class FeedPoller {
         }
 
         if (!dbResource.containsField("date") || ((Date) dbResource.get("date")).before(resource.getDate())) {
-            dbResource.put("url", resource.getUrl());
-            dbResource.put("title", resource.getTitle());
-            dbResource.put("description", resource.getDescription());
-            dbResource.put("dwca", resource.getDwca());
-            dbResource.put("eml", resource.getEml());
-            dbResource.put("date", resource.getDate());
-            mongoService.saveResource(dbResource);
-            mongoService.saveLog("Updated resource", resource.getUrl());
-            logger.debug("Updated resource " + resource.getUrl());
+            try {
+                mongoService.deleteArchive(resource.getDwca());
+                dbResource.put("url", resource.getUrl());
+                dbResource.put("title", resource.getTitle());
+                dbResource.put("description", resource.getDescription());
+                dbResource.put("dwca", resource.getDwca());
+                dbResource.put("eml", resource.getEml());
+                dbResource.put("date", resource.getDate());
+                mongoService.saveArchive(resource.getDwca());
+                mongoService.saveResource(dbResource);
+                mongoService.saveLog("Updated resource", resource.getUrl());
+                logger.debug("Updated resource " + resource.getUrl());
+            } catch (Exception e) {
+                mongoService.saveError("Error updating resource", resource.getUrl());
+                logger.error("Error updating resource " + resource.getUrl());
+            }
         }
 
     }
