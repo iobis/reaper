@@ -1,4 +1,5 @@
 db.createCollection("sources");
+db.createCollection("log");
 
 db.getCollection("sources").insert([
 { url: "http://ipt.vliz.be/eurobis/rss.do" },

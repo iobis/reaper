@@ -8,8 +8,8 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -19,14 +19,7 @@ public class FeedPoller {
     private Logger logger = LoggerFactory.getLogger(FeedPoller.class);
 
     @Autowired
-    private MongoClient mongoClient;
-
-    private DB db;
-
-    @PostConstruct
-    private void init() {
-        db = mongoClient.getDB("reaper");
-    }
+    private MongoService mongoService;
 
     /**
      * Continuously polls all feeds in sources collection. Waits for all feeds to be processed
@@ -39,8 +32,7 @@ public class FeedPoller {
 
         List<CompletableFuture> futures = new ArrayList<CompletableFuture>();
 
-        DBCollection sources = db.getCollection("sources");
-        DBCursor cursor = sources.find();
+        DBCursor cursor = mongoService.getSources();
         while(cursor.hasNext()) {
             DBObject object = cursor.next();
             String url = (String) object.get("url");
@@ -48,10 +40,11 @@ public class FeedPoller {
                 CompletableFuture future = checkFeed(url);
                 futures.add(future);
             } catch (Exception e) {
-                logger.error("Failed to read feed " + url);
+                logger.error("Failed to read feed " + url + " - " + e.getMessage());
             }
         }
 
+        // wait for all threads to complete
         CompletableFuture all = CompletableFuture.allOf(futures.toArray(new CompletableFuture[futures.size()]));
         all.join();
 
@@ -70,7 +63,39 @@ public class FeedPoller {
         logger.debug("Checking feed " + url);
         List<IPTResource> resources = new RSSReader(url).read();
 
+        for (IPTResource resource : resources) {
+            processResource(resource);
+        }
+
         return CompletableFuture.completedFuture(url);
+    }
+
+    /**
+     * Processes a feed item.
+     *
+     * @param resource feed item
+     */
+    private void processResource(IPTResource resource) {
+
+        // todo: restrict fields?
+        DBObject dbResource = mongoService.getResource(resource.getUrl());
+
+        if (dbResource == null) {
+            dbResource = new BasicDBObject();
+        }
+
+        if (!dbResource.containsField("date") || ((Date) dbResource.get("date")).before(resource.getDate())) {
+            dbResource.put("url", resource.getUrl());
+            dbResource.put("title", resource.getTitle());
+            dbResource.put("description", resource.getDescription());
+            dbResource.put("dwca", resource.getDwca());
+            dbResource.put("eml", resource.getEml());
+            dbResource.put("date", resource.getDate());
+            mongoService.saveResource(dbResource);
+            mongoService.saveLog("Updated resource", resource.getUrl());
+            logger.debug("Updated resource " + resource.getUrl());
+        }
+
     }
 
 }

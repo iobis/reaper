@@ -1,11 +1,15 @@
 package org.iobis.reaper;
 
+import java.util.Date;
+
 public class IPTResource {
 
     private String url;
     private String description;
+    private String title;
     private String dwca;
     private String eml;
+    private Date date;
 
     public String getUrl() {
         return url;
@@ -37,5 +41,21 @@ public class IPTResource {
 
     public void setEml(String eml) {
         this.eml = eml;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
+    }
+
+    public Date getDate() {
+        return date;
+    }
+
+    public void setDate(Date date) {
+        this.date = date;
     }
 }
