@@ -1,2 +1,3 @@
 # reaper
-IPT harvester
+
+Multithreaded scheduled IPT harvester, uses MongoDB.
