@@ -13,7 +13,6 @@ db.getCollection("sources").insert([
 { url: "http://www.iobis.org.cn:8080/ipt/rss.do" },
 { url: "https://www1.usgs.gov/obis-usa/ipt/rss.do" },
 { url: "http://ipt.iobis.org/arcod/rss.do" },
-{ url: "http://www.cenpat-conicet.gov.ar:8080/ipt-2.0.3/rss.do" },
 { url: "http://ipt.iobis.org/seaobis/rss.do" },
 { url: "http://arobis.cenpat-conicet.gob.ar:8081/rss.do" },
 { url: "http://ipt.iobis.org/hab/rss.do" },

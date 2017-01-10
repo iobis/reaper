@@ -42,14 +42,13 @@ public class MongoService {
      * @return source
      */
     public DBObject getResource(String url) {
-
         BasicDBObject query = new BasicDBObject();
         query.append("url", url);
         return db.getCollection("resources").findOne(query);
-
     }
 
     public void saveResource(DBObject resource) {
+        resource.put("updated", new Date());
         db.getCollection("resources").save(resource);
     }
 
