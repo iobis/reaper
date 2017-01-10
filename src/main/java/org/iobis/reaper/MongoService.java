@@ -6,7 +6,6 @@ import com.mongodb.gridfs.GridFSDBFile;
 import com.mongodb.gridfs.GridFSInputFile;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.util.FileCopyUtils;
 
 import javax.annotation.PostConstruct;
 import java.io.InputStream;
@@ -15,6 +14,12 @@ import java.util.Date;
 
 @Service
 public class MongoService {
+
+    private static String ERRORS_COLLECTION = "errors";
+    private static String SOURCES_COLLECTION = "sources";
+    private static String RESOURCES_COLLECTION = "resources";
+    private static String LOG_COLLECTION = "resources";
+    private static String ARCHIVE_COLLECTION = "archive";
 
     @Autowired
     private MongoClient mongoClient;
@@ -32,7 +37,11 @@ public class MongoService {
      * @return list of sources
      */
     public DBCursor getSources() {
-         return db.getCollection("sources").find();
+        return db.getCollection(SOURCES_COLLECTION).find();
+    }
+
+    public DBCursor getErrors() {
+        return db.getCollection(ERRORS_COLLECTION).find();
     }
 
     /**
@@ -44,12 +53,12 @@ public class MongoService {
     public DBObject getResource(String url) {
         BasicDBObject query = new BasicDBObject();
         query.append("url", url);
-        return db.getCollection("resources").findOne(query);
+        return db.getCollection(RESOURCES_COLLECTION).findOne(query);
     }
 
     public void saveResource(DBObject resource) {
         resource.put("updated", new Date());
-        db.getCollection("resources").save(resource);
+        db.getCollection(RESOURCES_COLLECTION).save(resource);
     }
 
     public void saveLog(String message, String url) {
@@ -57,7 +66,7 @@ public class MongoService {
         log.put("message", message);
         log.put("url", url);
         log.put("date", new Date());
-        db.getCollection("log").save(log);
+        db.getCollection(LOG_COLLECTION).save(log);
     }
 
     public void saveError(String message, String url) {
@@ -65,11 +74,11 @@ public class MongoService {
         log.put("message", message);
         log.put("url", url);
         log.put("date", new Date());
-        db.getCollection("error").save(log);
+        db.getCollection(ERRORS_COLLECTION).save(log);
     }
 
     public void deleteArchive(String dwca) {
-        GridFS fs = new GridFS(db, "archive");
+        GridFS fs = new GridFS(db, ARCHIVE_COLLECTION);
         GridFSDBFile file = fs.findOne(dwca);
         if (file != null) {
             fs.remove(file);
@@ -78,7 +87,7 @@ public class MongoService {
 
     public void saveArchive(String dwca) {
         try {
-            GridFS fs = new GridFS(db, "archive");
+            GridFS fs = new GridFS(db, ARCHIVE_COLLECTION);
             InputStream is = new URL(dwca).openStream();
             GridFSInputFile file = fs.createFile(is);
             file.setFilename(dwca);
