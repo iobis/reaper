@@ -1,5 +1,7 @@
 package org.iobis.reaper;
 
+import org.iobis.reaper.model.Feed;
+import org.iobis.reaper.model.Dataset;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
@@ -9,25 +11,21 @@ import org.w3c.dom.NodeList;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.InputStream;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class RSSReader {
 
     private Logger logger = LoggerFactory.getLogger(RSSReader.class);
 
-    private URL url;
+    private Feed feed;
 
-    public RSSReader(String url) {
-        try {
-            this.url = new URL(url);
-        } catch (MalformedURLException e) {
-            throw new RuntimeException(e);
-        }
+    public RSSReader(Feed feed) {
+        this.feed = feed;
     }
 
     /**
@@ -35,10 +33,11 @@ public class RSSReader {
      *
      * @return a list of IPT resources
      */
-    public List<IPTResource> read() {
-        List<IPTResource> resources = new ArrayList<IPTResource>();
+    public List<Dataset> read() {
+        List<Dataset> datasets = new ArrayList<Dataset>();
 
         try {
+            URL url = new URL(feed.getUrl());
             InputStream is = url.openStream();
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
             DocumentBuilder builder = factory.newDocumentBuilder();
@@ -49,7 +48,8 @@ public class RSSReader {
 
             for (int i = 0; i < items.getLength(); i++) {
 
-                IPTResource resource = new IPTResource();
+                Dataset dataset = new Dataset();
+                dataset.setFeed(feed);
                 Node item = items.item(i);
 
                 for (int j = 0; j < item.getChildNodes().getLength(); j++) {
@@ -58,29 +58,38 @@ public class RSSReader {
                     String name = child.getNodeName();
 
                     if (name == "title") {
-                        resource.setTitle(child.getTextContent());
+                        dataset.setTitle(child.getTextContent());
                     } else if (name == "description") {
-                        resource.setDescription(child.getTextContent());
+                        dataset.setDescription(child.getTextContent());
                     } else if (name == "link") {
-                        resource.setUrl(child.getTextContent());
+                        String datasetUrl = child.getTextContent();
+                        dataset.setUrl(datasetUrl);
+
+                        // parse dataset short name from url
+                        Pattern pattern = Pattern.compile("r=(.*)");
+                        Matcher matcher = pattern.matcher(datasetUrl);
+                        if (matcher.find()) {
+                            dataset.setName(matcher.group(1));
+                        }
+
                     } else if (name == "ipt:eml") {
-                        resource.setEml(child.getTextContent());
+                        dataset.setEml(child.getTextContent());
                     } else if (name == "ipt:dwca") {
-                        resource.setDwca(child.getTextContent());
+                        dataset.setDwca(child.getTextContent());
                     } else if (name == "pubDate") {
                         String dateString = child.getTextContent();
                         String pattern = "EEE, dd MMM yyyy HH:mm:ss Z"; // RFC 2822
                         SimpleDateFormat format = new SimpleDateFormat(pattern);
-                        resource.setDate(format.parse(dateString));
+                        dataset.setPublished(format.parse(dateString));
                     }
 
                 }
 
                 // IPT bug
-                if (resource.getDate() == null) {
+                if (dataset.getPublished() == null) {
                     continue;
                 }
-                resources.add(resource);
+                datasets.add(dataset);
 
             }
 
@@ -88,7 +97,7 @@ public class RSSReader {
             throw new RuntimeException(e);
         }
 
-        return resources;
+        return datasets;
     }
 
 }

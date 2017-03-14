@@ -1,6 +1,10 @@
 package org.iobis.reaper;
 
-import com.mongodb.*;
+import com.mongodb.gridfs.GridFSDBFile;
+import com.mongodb.gridfs.GridFSInputFile;
+import org.iobis.reaper.model.Archive;
+import org.iobis.reaper.model.Feed;
+import org.iobis.reaper.model.Dataset;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,7 +13,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -22,7 +25,7 @@ public class FeedPoller {
     private MongoService mongoService;
 
     /**
-     * Continuously polls all feeds in sources collection. Waits for all feeds to be processed
+     * Continuously polls all feeds in feeds collection. Waits for all feeds to be processed
      * before continuing.
      */
     @Scheduled(fixedDelayString = "${feedpoller.delay}")
@@ -32,16 +35,15 @@ public class FeedPoller {
 
         List<CompletableFuture> futures = new ArrayList<CompletableFuture>();
 
-        DBCursor cursor = mongoService.getSources();
-        while(cursor.hasNext()) {
-            DBObject object = cursor.next();
-            String url = (String) object.get("url");
+        List<Feed> feeds = mongoService.getFeeds();
+
+        for (Feed feed : feeds) {
             try {
-                CompletableFuture future = checkFeed(url);
+                CompletableFuture future = processFeed(feed);
                 futures.add(future);
             } catch (Exception e) {
-                mongoService.saveError("Failed to read feed", url);
-                logger.error("Failed to read feed " + url + " - " + e.getMessage());
+                mongoService.saveError("Failed to read feed", feed.getId(), feed.getUrl());
+                logger.error("Failed to read feed " + feed.getUrl() + " - " + e.getMessage());
             }
         }
 
@@ -56,52 +58,100 @@ public class FeedPoller {
     /**
      * Checks feed for updated datasets.
      *
-     * @param url feed URL
+     * @param feed feed
      */
     @Async
-    private CompletableFuture checkFeed(String url) {
+    private CompletableFuture processFeed(Feed feed) {
 
-        logger.debug("Checking feed " + url);
-        List<IPTResource> resources = new RSSReader(url).read();
+        logger.debug("Checking feed " + feed.getUrl());
 
-        for (IPTResource resource : resources) {
-            processResource(resource);
+        List<Dataset> datasets = new RSSReader(feed).read();
+        for (Dataset dataset : datasets) {
+            processDataset(dataset);
         }
 
-        return CompletableFuture.completedFuture(url);
+        return CompletableFuture.completedFuture(feed.getUrl());
     }
 
     /**
-     * Processes a feed item.
+     * Processes a dataset.
      *
-     * @param resource feed item
+     * @param dataset dataset
      */
-    private void processResource(IPTResource resource) {
+    private void processDataset(Dataset dataset) {
 
-        // todo: restrict fields?
-        DBObject dbResource = mongoService.getResource(resource.getUrl());
+        try {
 
-        if (dbResource == null) {
-            dbResource = new BasicDBObject();
-        }
+            // get existing dataset and archive if present
 
-        if (!dbResource.containsField("date") || ((Date) dbResource.get("date")).before(resource.getDate())) {
-            try {
-                mongoService.deleteArchive(resource.getDwca());
-                dbResource.put("url", resource.getUrl());
-                dbResource.put("title", resource.getTitle());
-                dbResource.put("description", resource.getDescription());
-                dbResource.put("dwca", resource.getDwca());
-                dbResource.put("eml", resource.getEml());
-                dbResource.put("date", resource.getDate());
-                mongoService.saveArchive(resource.getDwca());
-                mongoService.saveResource(dbResource);
-                mongoService.saveLog("Updated resource", resource.getUrl());
-                logger.debug("Updated resource " + resource.getUrl());
-            } catch (Exception e) {
-                mongoService.saveError("Error updating resource", resource.getUrl());
-                logger.error("Error updating resource " + resource.getUrl());
+            GridFSDBFile dbArchive = null;
+            Dataset dbDataset = mongoService.getDataset(dataset);
+
+            if (dbDataset == null) {
+                dbDataset = new Dataset();
+                dbDataset.setId(Util.generateId());
+            } else {
+                dbArchive = mongoService.getArchive(dbDataset.getFile());
             }
+
+            // only update dataset if new or if published date later than previous one
+
+            if (dbDataset.getPublished() == null || (dbDataset.getPublished() != null && dbDataset.getPublished().before(dataset.getPublished()))) {
+
+                // save new archive if archive available
+
+                if (dataset.getDwca() != null) {
+                    String newArchiveId = Util.generateId();
+                    GridFSInputFile newArchive = mongoService.saveArchive(new Archive(newArchiveId, dataset.getDwca()));
+                    dbDataset.setFile(newArchiveId);
+
+                    // check if dataset is new or has been updated
+
+                    if (dbArchive == null || dbArchive.getMD5() != newArchive.getMD5()) {
+                        logger.debug("Dataset " + dataset.getUrl() + " is new or has been updated");
+                        dbDataset.setUpdated(dataset.getPublished());
+                    } else {
+                        logger.debug("Dataset " + dataset.getUrl() + " has not changed");
+                    }
+
+                }
+
+                // populate dataset
+
+                dbDataset.setName(dataset.getName());
+                dbDataset.setDwca(dataset.getDwca());
+                dbDataset.setDescription(dataset.getDescription());
+                dbDataset.setUrl(dataset.getUrl());
+                dbDataset.setTitle(dataset.getTitle());
+                dbDataset.setPublished(dataset.getPublished());
+                dbDataset.setFeed(dataset.getFeed());
+
+                // clean up old archive if present
+
+                if (dbArchive != null) {
+                    mongoService.deleteArchive(dbArchive.getFilename());
+                }
+
+                // save
+
+                mongoService.saveDataset(dbDataset);
+
+                mongoService.saveLog("Updated dataset", dataset.getFeed().getId(), dataset.getUrl());
+                logger.debug("Updated dataset " + dataset.getUrl());
+
+            } else {
+
+                mongoService.saveLog("Dataset has not changed", dataset.getFeed().getId(), dataset.getUrl());
+                logger.debug("Dataset " + dataset.getUrl() + " has not changed");
+
+            }
+
+        } catch (Exception e) {
+
+            mongoService.saveError("Error updating dataset", dataset.getFeed().getId(), dataset.getUrl());
+            logger.error("Error updating dataset " + dataset.getUrl());
+            e.printStackTrace();
+
         }
 
     }

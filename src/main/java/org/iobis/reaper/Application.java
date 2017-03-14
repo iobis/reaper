@@ -38,7 +38,7 @@ public class Application extends AsyncConfigurerSupport {
 
     @Bean
     public MongoClient mongoClient() {
-        MongoClient mongoClient = new MongoClient(host , port);
+        MongoClient mongoClient = new MongoClient(host, port);
         return mongoClient;
     }
 
