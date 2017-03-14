@@ -57,11 +57,11 @@ public class RSSReader {
                     Node child = item.getChildNodes().item(j);
                     String name = child.getNodeName();
 
-                    if (name == "title") {
+                    if ("title".equals(name)) {
                         dataset.setTitle(child.getTextContent());
-                    } else if (name == "description") {
+                    } else if ("description".equals(name)) {
                         dataset.setDescription(child.getTextContent());
-                    } else if (name == "link") {
+                    } else if ("link".equals(name)) {
                         String datasetUrl = child.getTextContent();
                         dataset.setUrl(datasetUrl);
 
@@ -72,11 +72,11 @@ public class RSSReader {
                             dataset.setName(matcher.group(1));
                         }
 
-                    } else if (name == "ipt:eml") {
+                    } else if ("ipt:eml".equals(name)) {
                         dataset.setEml(child.getTextContent());
-                    } else if (name == "ipt:dwca") {
+                    } else if ("ipt:dwca".equals(name)) {
                         dataset.setDwca(child.getTextContent());
-                    } else if (name == "pubDate") {
+                    } else if ("pubDate".equals(name)) {
                         String dateString = child.getTextContent();
                         String pattern = "EEE, dd MMM yyyy HH:mm:ss Z"; // RFC 2822
                         SimpleDateFormat format = new SimpleDateFormat(pattern);

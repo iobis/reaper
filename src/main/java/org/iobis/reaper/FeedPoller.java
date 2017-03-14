@@ -120,6 +120,7 @@ public class FeedPoller {
 
                 dbDataset.setName(dataset.getName());
                 dbDataset.setDwca(dataset.getDwca());
+                dbDataset.setEml(dataset.getEml());
                 dbDataset.setDescription(dataset.getDescription());
                 dbDataset.setUrl(dataset.getUrl());
                 dbDataset.setTitle(dataset.getTitle());
@@ -141,7 +142,7 @@ public class FeedPoller {
 
             } else {
 
-                mongoService.saveLog("Dataset has not changed", dataset.getFeed().getId(), dataset.getUrl());
+                //mongoService.saveLog("Dataset has not changed", dataset.getFeed().getId(), dataset.getUrl());
                 logger.debug("Dataset " + dataset.getUrl() + " has not changed");
 
             }
