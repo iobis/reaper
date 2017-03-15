@@ -50,6 +50,7 @@ public class ArchiveService {
             InputStream is = new URL(archive.getUrl()).openStream();
             GridFSInputFile file = fs.createFile(is);
             file.setFilename(archive.getId());
+            file.put("_id", archive.getId());
             file.save();
             return file;
         } catch (Exception e) {
