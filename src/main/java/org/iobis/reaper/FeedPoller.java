@@ -5,6 +5,10 @@ import com.mongodb.gridfs.GridFSInputFile;
 import org.iobis.reaper.model.Archive;
 import org.iobis.reaper.model.Feed;
 import org.iobis.reaper.model.Dataset;
+import org.iobis.reaper.service.ArchiveService;
+import org.iobis.reaper.service.FeedService;
+import org.iobis.reaper.service.LogService;
+import org.iobis.reaper.service.DatasetService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,7 +26,16 @@ public class FeedPoller {
     private Logger logger = LoggerFactory.getLogger(FeedPoller.class);
 
     @Autowired
-    private MongoService mongoService;
+    private DatasetService datasetService;
+
+    @Autowired
+    private FeedService feedService;
+
+    @Autowired
+    private ArchiveService archiveService;
+
+    @Autowired
+    private LogService logService;
 
     /**
      * Continuously polls all feeds in feeds collection. Waits for all feeds to be processed
@@ -31,19 +44,18 @@ public class FeedPoller {
     @Scheduled(fixedDelayString = "${feedpoller.delay}")
     private void poll() {
 
-        logger.debug("Polling feeds");
+        logger.info("Polling feeds");
 
         List<CompletableFuture> futures = new ArrayList<CompletableFuture>();
 
-        List<Feed> feeds = mongoService.getFeeds();
+        List<Feed> feeds = feedService.getFeeds();
 
         for (Feed feed : feeds) {
             try {
                 CompletableFuture future = processFeed(feed);
                 futures.add(future);
             } catch (Exception e) {
-                mongoService.saveError("Failed to read feed", feed.getId(), feed.getUrl());
-                logger.error("Failed to read feed " + feed.getUrl() + " - " + e.getMessage());
+                logService.saveError("Failed to read feed", feed.getId(), feed.getUrl());
             }
         }
 
@@ -51,7 +63,7 @@ public class FeedPoller {
         CompletableFuture all = CompletableFuture.allOf(futures.toArray(new CompletableFuture[futures.size()]));
         all.join();
 
-        logger.debug("All feeds processed");
+        logger.info("All feeds processed");
 
     }
 
@@ -85,13 +97,13 @@ public class FeedPoller {
             // get existing dataset and archive if present
 
             GridFSDBFile dbArchive = null;
-            Dataset dbDataset = mongoService.getDataset(dataset);
+            Dataset dbDataset = datasetService.getDataset(dataset);
 
             if (dbDataset == null) {
                 dbDataset = new Dataset();
                 dbDataset.setId(Util.generateId());
             } else {
-                dbArchive = mongoService.getArchive(dbDataset.getFile());
+                dbArchive = archiveService.getArchive(dbDataset.getFile());
             }
 
             // only update dataset if new or if published date later than previous one
@@ -102,16 +114,16 @@ public class FeedPoller {
 
                 if (dataset.getDwca() != null) {
                     String newArchiveId = Util.generateId();
-                    GridFSInputFile newArchive = mongoService.saveArchive(new Archive(newArchiveId, dataset.getDwca()));
+                    GridFSInputFile newArchive = archiveService.saveArchive(new Archive(newArchiveId, dataset.getDwca()));
                     dbDataset.setFile(newArchiveId);
 
                     // check if dataset is new or has been updated
 
                     if (dbArchive == null || dbArchive.getMD5() != newArchive.getMD5()) {
-                        logger.debug("Dataset " + dataset.getUrl() + " is new or has been updated");
+                        logger.debug("Dataset " + dataset.getUrl() + " is new or archive has been updated");
                         dbDataset.setUpdated(dataset.getPublished());
                     } else {
-                        logger.debug("Dataset " + dataset.getUrl() + " has not changed");
+                        //logger.debug("Dataset " + dataset.getUrl() + " has not changed");
                     }
 
                 }
@@ -130,27 +142,24 @@ public class FeedPoller {
                 // clean up old archive if present
 
                 if (dbArchive != null) {
-                    mongoService.deleteArchive(dbArchive.getFilename());
+                    archiveService.deleteArchive(dbArchive.getFilename());
                 }
 
                 // save
 
-                mongoService.saveDataset(dbDataset);
+                datasetService.saveDataset(dbDataset);
 
-                mongoService.saveLog("Updated dataset", dataset.getFeed().getId(), dataset.getUrl());
-                logger.debug("Updated dataset " + dataset.getUrl());
+                logService.saveLog("Updated dataset", dataset.getFeed().getId(), dataset.getUrl());
 
             } else {
 
-                //mongoService.saveLog("Dataset has not changed", dataset.getFeed().getId(), dataset.getUrl());
-                logger.debug("Dataset " + dataset.getUrl() + " has not changed");
+                //logger.debug("Dataset " + dataset.getUrl() + " has not changed");
 
             }
 
         } catch (Exception e) {
 
-            mongoService.saveError("Error updating dataset", dataset.getFeed().getId(), dataset.getUrl());
-            logger.error("Error updating dataset " + dataset.getUrl());
+            logService.saveError("Error updating dataset", dataset.getFeed().getId(), dataset.getUrl());
             e.printStackTrace();
 
         }
