@@ -68,15 +68,23 @@ public class MongoService {
         return cursor.toArray();
     }
 
+    public List<DBObject> getLog(Integer limit) {
+        DBCursor cursor = db.getCollection(LOG_COLLECTION).find();
+        cursor.sort(new BasicDBObject("date", -1)).limit(limit);
+        return cursor.toArray();
+    }
+
     public List<DBObject> getDatasets() {
         DBCursor cursor = db.getCollection(DATASETS_COLLECTION).find();
         cursor.sort(new BasicDBObject("url", 1));
         return cursor.toArray();
     }
 
+    /**
+     * Find dataset by feed id and dataset short name.
+     */
     public Dataset getDataset(Dataset dataset) {
 
-        // find dataset by feed id and dataset short name
         BasicDBObject query = new BasicDBObject();
         query.append("feed", dataset.getFeed().getId());
         query.append("name", dataset.getName());
@@ -96,6 +104,7 @@ public class MongoService {
             if (o.containsField("dwca")) result.setDwca((String) o.get("dwca"));
             if (o.containsField("published")) result.setPublished((Date) o.get("published"));
             if (o.containsField("updated")) result.setUpdated((Date) o.get("updated"));
+            if (o.containsField("file")) result.setFile((String) o.get("file"));
         }
 
         return result;
@@ -113,6 +122,7 @@ public class MongoService {
         o.put("published", dataset.getPublished());
         o.put("updated", dataset.getUpdated());
         o.put("feed", dataset.getFeed().getId());
+        o.put("file", dataset.getFile());
         db.getCollection(DATASETS_COLLECTION).save(o);
     }
 

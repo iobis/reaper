@@ -19,6 +19,11 @@ public class ReaperController {
         return mongoService.getErrors(100);
     }
 
+    @RequestMapping("/log")
+    public List<DBObject> log() {
+        return mongoService.getLog(100);
+    }
+
     @RequestMapping("/datasets")
     public List<DBObject> datasets() {
         return mongoService.getDatasets();
