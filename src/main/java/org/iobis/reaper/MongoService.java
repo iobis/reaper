@@ -62,8 +62,16 @@ public class MongoService {
         return feeds;
     }
 
-    public DBCursor getErrors() {
-        return db.getCollection(ERRORS_COLLECTION).find();
+    public List<DBObject> getErrors(Integer limit) {
+        DBCursor cursor = db.getCollection(ERRORS_COLLECTION).find();
+        cursor.sort(new BasicDBObject("date", -1)).limit(limit);
+        return cursor.toArray();
+    }
+
+    public List<DBObject> getDatasets() {
+        DBCursor cursor = db.getCollection(DATASETS_COLLECTION).find();
+        cursor.sort(new BasicDBObject("url", 1));
+        return cursor.toArray();
     }
 
     public Dataset getDataset(Dataset dataset) {
@@ -94,9 +102,7 @@ public class MongoService {
     }
 
     public void saveDataset(Dataset dataset) {
-
         DBObject o = new BasicDBObject();
-
         o.put("_id", dataset.getId());
         o.put("url", dataset.getUrl());
         o.put("title", dataset.getTitle());
@@ -107,12 +113,12 @@ public class MongoService {
         o.put("published", dataset.getPublished());
         o.put("updated", dataset.getUpdated());
         o.put("feed", dataset.getFeed().getId());
-
         db.getCollection(DATASETS_COLLECTION).save(o);
     }
 
     public void saveLog(String message, String feed, String url) {
         DBObject log = new BasicDBObject();
+        log.put("_id", Util.generateId());
         log.put("feed", feed);
         log.put("message", message);
         log.put("url", url);
@@ -122,6 +128,7 @@ public class MongoService {
 
     public void saveError(String message, String feed, String url) {
         DBObject log = new BasicDBObject();
+        log.put("_id", Util.generateId());
         log.put("feed", feed);
         log.put("message", message);
         log.put("url", url);
