@@ -5,6 +5,7 @@ import org.iobis.reaper.model.Dataset;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
@@ -16,17 +17,11 @@ public class DatasetService {
 
     private Logger logger = LoggerFactory.getLogger(DatasetService.class);
 
-    private static String DATASETS_COLLECTION = "datasets";
+    @Value("${mongodb.collection.datasets}")
+    private String DATASETS_COLLECTION;
 
     @Autowired
-    private MongoClient mongoClient;
-
     private DB db;
-
-    @PostConstruct
-    private void init() {
-        db = mongoClient.getDB("reaper");
-    }
 
     public List<DBObject> getDatasets() {
         DBCursor cursor = db.getCollection(DATASETS_COLLECTION).find();

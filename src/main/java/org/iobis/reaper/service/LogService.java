@@ -6,6 +6,7 @@ import org.iobis.reaper.model.Feed;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import javax.annotation.PostConstruct;
 import java.util.ArrayList;
@@ -15,20 +16,16 @@ import java.util.List;
 @Service
 public class LogService {
 
-    private static String LOG_COLLECTION = "log";
-    private static String ERRORS_COLLECTION = "errors";
+    @Value("${mongodb.collection.log}")
+    private String LOG_COLLECTION;
+
+    @Value("${mongodb.collection.errors}")
+    private String ERRORS_COLLECTION;
 
     private Logger logger = LoggerFactory.getLogger(LogService.class);
 
     @Autowired
-    private MongoClient mongoClient;
-
     private DB db;
-
-    @PostConstruct
-    private void init() {
-        db = mongoClient.getDB("reaper");
-    }
 
     public List<DBObject> getErrors(Integer limit) {
         DBCursor cursor = db.getCollection(ERRORS_COLLECTION).find();
