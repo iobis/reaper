@@ -18,7 +18,7 @@ public class FeedService {
     private Logger logger = LoggerFactory.getLogger(FeedService.class);
 
     @Value("${mongodb.collection.feeds}")
-    private String FEEDS_COLLECTION;
+    private String feedsCollection;
 
     @Autowired
     private DB db;
@@ -36,7 +36,7 @@ public class FeedService {
 
     public List<Feed> getFeeds() {
         List<Feed> feeds = new ArrayList<Feed>();
-        DBCursor cursor = db.getCollection(FEEDS_COLLECTION).find();
+        DBCursor cursor = db.getCollection(feedsCollection).find();
         while(cursor.hasNext()) {
             DBObject object = cursor.next();
             String id = (String) object.get("_id");

@@ -2,14 +2,12 @@ package org.iobis.reaper.service;
 
 import com.mongodb.*;
 import org.iobis.reaper.Util;
-import org.iobis.reaper.model.Feed;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import javax.annotation.PostConstruct;
-import java.util.ArrayList;
+
 import java.util.Date;
 import java.util.List;
 
@@ -17,10 +15,10 @@ import java.util.List;
 public class LogService {
 
     @Value("${mongodb.collection.log}")
-    private String LOG_COLLECTION;
+    private String logCollection;
 
     @Value("${mongodb.collection.errors}")
-    private String ERRORS_COLLECTION;
+    private String errorsCollection;
 
     private Logger logger = LoggerFactory.getLogger(LogService.class);
 
@@ -28,13 +26,13 @@ public class LogService {
     private DB db;
 
     public List<DBObject> getErrors(Integer limit) {
-        DBCursor cursor = db.getCollection(ERRORS_COLLECTION).find();
+        DBCursor cursor = db.getCollection(errorsCollection).find();
         cursor.sort(new BasicDBObject("date", -1)).limit(limit);
         return cursor.toArray();
     }
 
     public List<DBObject> getLog(Integer limit) {
-        DBCursor cursor = db.getCollection(LOG_COLLECTION).find();
+        DBCursor cursor = db.getCollection(logCollection).find();
         cursor.sort(new BasicDBObject("date", -1)).limit(limit);
         return cursor.toArray();
     }
@@ -46,7 +44,7 @@ public class LogService {
         log.put("message", message);
         log.put("url", url);
         log.put("date", new Date());
-        db.getCollection(LOG_COLLECTION).save(log);
+        db.getCollection(logCollection).save(log);
         logger.debug(message + " - " + url);
     }
 
@@ -57,7 +55,7 @@ public class LogService {
         log.put("message", message);
         log.put("url", url);
         log.put("date", new Date());
-        db.getCollection(ERRORS_COLLECTION).save(log);
+        db.getCollection(errorsCollection).save(log);
         logger.error(message + " - " + url);
     }
 

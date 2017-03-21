@@ -8,7 +8,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.PostConstruct;
 import java.util.Date;
 import java.util.List;
 
@@ -18,13 +17,13 @@ public class DatasetService {
     private Logger logger = LoggerFactory.getLogger(DatasetService.class);
 
     @Value("${mongodb.collection.datasets}")
-    private String DATASETS_COLLECTION;
+    private String datasetsCollection;
 
     @Autowired
     private DB db;
 
     public List<DBObject> getDatasets() {
-        DBCursor cursor = db.getCollection(DATASETS_COLLECTION).find();
+        DBCursor cursor = db.getCollection(datasetsCollection).find();
         cursor.sort(new BasicDBObject("url", 1));
         return cursor.toArray();
     }
@@ -39,7 +38,7 @@ public class DatasetService {
         query.append("name", dataset.getName());
 
         Dataset result = null;
-        DBObject o = db.getCollection(DATASETS_COLLECTION).findOne(query);
+        DBObject o = db.getCollection(datasetsCollection).findOne(query);
 
         if (o != null) {
             result = new Dataset();
@@ -72,7 +71,7 @@ public class DatasetService {
         o.put("updated", dataset.getUpdated());
         o.put("feed", dataset.getFeed().getId());
         o.put("file", dataset.getFile());
-        db.getCollection(DATASETS_COLLECTION).save(o);
+        db.getCollection(datasetsCollection).save(o);
     }
 
 }

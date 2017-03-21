@@ -13,7 +13,6 @@ import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
-import javax.annotation.PostConstruct;
 import java.util.concurrent.Executor;
 
 @SpringBootApplication
@@ -40,16 +39,16 @@ public class Application extends AsyncConfigurerSupport {
     private Integer queueCapacity;
 
     @Value("${mongodb.collection.log}")
-    private String LOG_COLLECTION;
+    private String logCollection;
 
     @Value("${mongodb.collection.errors}")
-    private String ERRORS_COLLECTION;
+    private String errorsCollection;
 
     @Value("${mongodb.log.size}")
-    private Long LOG_SIZE;
+    private Long logSize;
 
     @Value("${mongodb.errors.size}")
-    private Long ERRORS_SIZE;
+    private Long errorsSize;
 
     public static void main(String[] args) throws Exception {
         SpringApplication.run(Application.class);
@@ -63,13 +62,13 @@ public class Application extends AsyncConfigurerSupport {
     @Bean
     public DB db() {
         DB db = mongoClient().getDB(dbName);
-        if (!db.collectionExists(LOG_COLLECTION)) {
-            DBObject options = BasicDBObjectBuilder.start().add("capped", true).add("max", LOG_SIZE).add("size", 1000000000000L).get();
-            db.createCollection(LOG_COLLECTION, options);
+        if (!db.collectionExists(logCollection)) {
+            DBObject options = BasicDBObjectBuilder.start().add("capped", true).add("max", logSize).add("size", 1000000000000L).get();
+            db.createCollection(logCollection, options);
         }
-        if (!db.collectionExists(ERRORS_COLLECTION)) {
-            DBObject options = BasicDBObjectBuilder.start().add("capped", true).add("max", ERRORS_SIZE).add("size", 1000000000000L).get();
-            db.createCollection(ERRORS_COLLECTION, options);
+        if (!db.collectionExists(errorsCollection)) {
+            DBObject options = BasicDBObjectBuilder.start().add("capped", true).add("max", errorsSize).add("size", 1000000000000L).get();
+            db.createCollection(errorsCollection, options);
         }
         return db;
     }

@@ -17,7 +17,7 @@ import java.net.URL;
 public class ArchiveService {
 
     @Value("${mongodb.collection.archives}")
-    private String ARCHIVES_COLLECTION;
+    private String archivesCollection;
 
     private Logger logger = LoggerFactory.getLogger(ArchiveService.class);
 
@@ -25,12 +25,12 @@ public class ArchiveService {
     private DB db;
 
     public GridFSDBFile getArchive(String id) {
-        GridFS fs = new GridFS(db, ARCHIVES_COLLECTION);
+        GridFS fs = new GridFS(db, archivesCollection);
         return fs.findOne(new BasicDBObject("_id", id));
     }
 
     public void deleteArchive(String id) {
-        GridFS fs = new GridFS(db, ARCHIVES_COLLECTION);
+        GridFS fs = new GridFS(db, archivesCollection);
         GridFSDBFile file = fs.findOne(new BasicDBObject("_id", id));
         if (file != null) {
             fs.remove(file);
@@ -40,7 +40,7 @@ public class ArchiveService {
     public GridFSInputFile saveArchive(Archive archive) {
         logger.debug("Saving archive " + archive.getId() + " " + archive.getUrl());
         try {
-            GridFS fs = new GridFS(db, ARCHIVES_COLLECTION);
+            GridFS fs = new GridFS(db, archivesCollection);
             InputStream is = new URL(archive.getUrl()).openStream();
             GridFSInputFile file = fs.createFile(is);
             file.setFilename(archive.getId());
