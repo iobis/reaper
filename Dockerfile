@@ -5,7 +5,7 @@ MAINTAINER Pieter Provoost <p.provoost@unesco.org>
 RUN mkdir /reaper
 COPY ./target/reaper.jar /reaper
 
-ENTRYPOINT ["/usr/bin/java"]
+ENTRYPOINT ["java"]
 CMD ["-jar", "/reaper/reaper.jar"]
 
 EXPOSE 80 
