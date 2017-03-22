@@ -2,6 +2,7 @@ package org.iobis.reaper;
 
 import com.mongodb.gridfs.GridFSDBFile;
 import com.mongodb.gridfs.GridFSInputFile;
+import org.apache.kafka.clients.producer.Producer;
 import org.iobis.reaper.model.Archive;
 import org.iobis.reaper.model.Feed;
 import org.iobis.reaper.model.Dataset;
@@ -36,6 +37,9 @@ public class FeedPoller {
 
     @Autowired
     private LogService logService;
+
+    @Autowired
+    private Producer producer;
 
     /**
      * Continuously polls all feeds in feeds collection. Waits for all feeds to be processed
@@ -119,7 +123,7 @@ public class FeedPoller {
 
                     // check if dataset is new or has been updated
 
-                    if (dbArchive == null || dbArchive.getMD5() != newArchive.getMD5()) {
+                    if (isArchiveUpdated(dbArchive, newArchive)) {
                         logger.debug("Dataset " + dataset.getUrl() + " is new or archive has been updated");
                         dbDataset.setUpdated(dataset.getPublished());
                     } else {
@@ -164,6 +168,10 @@ public class FeedPoller {
 
         }
 
+    }
+
+    private boolean isArchiveUpdated(GridFSDBFile dbArchive, GridFSInputFile newArchive) {
+        return dbArchive == null || dbArchive.getMD5() != newArchive.getMD5();
     }
 
 }

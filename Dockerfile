@@ -1,14 +1,11 @@
-FROM ubuntu:16.04
+FROM anapsix/alpine-java:8
 
 MAINTAINER Pieter Provoost <p.provoost@unesco.org>
-
-RUN apt-get -y update
-RUN apt-get -y install default-jdk
 
 RUN mkdir /reaper
 COPY ./target/reaper.jar /reaper
 
-ENTRYPOINT ["/usr/bin/java"]
+ENTRYPOINT ["java"]
 CMD ["-jar", "/reaper/reaper.jar"]
 
-EXPOSE 80 
+EXPOSE 8080
