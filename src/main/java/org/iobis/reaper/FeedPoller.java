@@ -96,11 +96,13 @@ public class FeedPoller {
      */
     private void processDataset(Dataset dataset) {
 
+        GridFSInputFile newArchive = null;
+        GridFSDBFile dbArchive = null;
+
         try {
 
             // get existing dataset and archive if present
 
-            GridFSDBFile dbArchive = null;
             Dataset dbDataset = datasetService.getDataset(dataset);
 
             if (dbDataset == null) {
@@ -118,7 +120,7 @@ public class FeedPoller {
 
                 if (dataset.getDwca() != null) {
                     String newArchiveId = Util.generateId();
-                    GridFSInputFile newArchive = archiveService.saveArchive(new Archive(newArchiveId, dataset.getDwca()));
+                    newArchive = archiveService.saveArchive(new Archive(newArchiveId, dataset.getDwca()));
                     dbDataset.setFile(newArchiveId);
 
                     // check if dataset is new or has been updated
@@ -126,8 +128,6 @@ public class FeedPoller {
                     if (isArchiveUpdated(dbArchive, newArchive)) {
                         logger.debug("Dataset " + dataset.getUrl() + " is new or archive has been updated");
                         dbDataset.setUpdated(dataset.getPublished());
-                    } else {
-                        //logger.debug("Dataset " + dataset.getUrl() + " has not changed");
                     }
 
                 }
@@ -152,12 +152,13 @@ public class FeedPoller {
                 // save
 
                 datasetService.saveDataset(dbDataset);
-
                 logService.saveLog("Updated dataset", dataset.getFeed().getId(), dataset.getUrl());
 
-            } else {
+                // kafka
 
-                //logger.debug("Dataset " + dataset.getUrl() + " has not changed");
+                if (isArchiveUpdated(dbArchive, newArchive)) {
+                    producer.send();
+                }
 
             }
 
