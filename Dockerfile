@@ -8,4 +8,4 @@ COPY ./target/reaper.jar /reaper
 ENTRYPOINT ["java"]
 CMD ["-jar", "/reaper/reaper.jar"]
 
-EXPOSE 80 
+EXPOSE 8080
