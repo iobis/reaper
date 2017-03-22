@@ -1,8 +1,11 @@
 package org.iobis.reaper;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.gridfs.GridFSDBFile;
 import com.mongodb.gridfs.GridFSInputFile;
 import org.apache.kafka.clients.producer.Producer;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.iobis.reaper.model.Archive;
 import org.iobis.reaper.model.Feed;
 import org.iobis.reaper.model.Dataset;
@@ -13,6 +16,7 @@ import org.iobis.reaper.service.DatasetService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -39,7 +43,10 @@ public class FeedPoller {
     private LogService logService;
 
     @Autowired
-    private Producer producer;
+    private Producer<String,String> producer;
+
+    @Value("${producer.topic}")
+    private String producerTopic;
 
     /**
      * Continuously polls all feeds in feeds collection. Waits for all feeds to be processed
@@ -157,7 +164,7 @@ public class FeedPoller {
                 // kafka
 
                 if (isArchiveUpdated(dbArchive, newArchive)) {
-                    producer.send();
+                    producer.send(createDatesetMessage(dbDataset));
                 }
 
             }
@@ -173,6 +180,19 @@ public class FeedPoller {
 
     private boolean isArchiveUpdated(GridFSDBFile dbArchive, GridFSInputFile newArchive) {
         return dbArchive == null || dbArchive.getMD5() != newArchive.getMD5();
+    }
+
+    private ProducerRecord<String,String> createDatesetMessage(Dataset dataset) {
+        ObjectMapper objectMapper = new ObjectMapper();
+
+        String eventJson = "";
+        try {
+            eventJson = objectMapper.writeValueAsString(dataset);
+        } catch (JsonProcessingException e) {
+            logger.error(e.getLocalizedMessage(), e);
+        }
+
+        return new ProducerRecord<String, String>(producerTopic, eventJson);
     }
 
 }
