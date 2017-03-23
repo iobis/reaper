@@ -5,9 +5,13 @@ import com.mongodb.DB;
 import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.config.PropertiesFactoryBean;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
 import org.springframework.scheduling.annotation.AsyncConfigurerSupport;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -71,6 +75,21 @@ public class Application extends AsyncConfigurerSupport {
             db.createCollection(errorsCollection, options);
         }
         return db;
+    }
+
+    @Bean(name = "producerProperties")
+    public PropertiesFactoryBean createProducerProperties() {
+        PropertiesFactoryBean bean = new PropertiesFactoryBean();
+        Resource r1 = new ClassPathResource("/kafka-producer.properties");
+        Resource r2 = new FileSystemResource("config/kafka-producer.properties");
+
+        if (r2.exists()) {
+            bean.setLocations(r1, r2);
+        } else {
+            bean.setLocation(r1);
+        }
+
+        return bean;
     }
 
     @Override
