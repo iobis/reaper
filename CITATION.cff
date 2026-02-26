@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+message: If you use this work, please cite it as below.
+title: reaper
+type: software
+abstract: IPT harvester
+url: https://github.com/iobis/reaper
+license: MIT
+authors:
+  - given-names: Pieter
+    family-names: Provoost
+    orcid: "https://orcid.org/0000-0002-4236-0384"
+  - given-names: Jeffrey
+    family-names: Allen
+  - name: Intergovernmental Oceanographic Commission of UNESCO
+    alias: IOC-UNESCO
+    website: "https://obis.org"
+date-released: 2016-12-20
